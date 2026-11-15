@@ -10,6 +10,7 @@
 <p>
 <a href="https://github.com/hhhhhffd/CustomCrosshair/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/hhhhhffd/CustomCrosshair?style=flat-square"></a>
 <a href="https://github.com/hhhhhffd/CustomCrosshair/releases"><img alt="Release downloads" src="https://img.shields.io/github/downloads/hhhhhffd/CustomCrosshair/total?style=flat-square"></a>
+<a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/hhhhhffd/CustomCrosshair?style=flat-square"></a>
 </p>
 <p><a href="https://github.com/hhhhhffd/CustomCrosshair/releases">Download</a> · <a href="#architecture">Architecture</a> · <a href="#build">Build</a></p>
 </div>
@@ -111,4 +112,4 @@ See [tests/README.md](tests/README.md) for scope and sample-code provenance. The
 
 ## License
 
-Not specified; no LICENSE file is present.
+Licensed under the [MIT License](LICENSE).
