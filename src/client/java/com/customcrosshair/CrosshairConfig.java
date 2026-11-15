@@ -20,8 +20,13 @@ import java.util.Locale;
 public final class CrosshairConfig {
     public enum Mode { SIMPLE, PRESET, CUSTOM }
     public enum ColorMode { VANILLA, STATIC, DYNAMIC }
+    public enum ColorSlot { BASE, PLAYER, HOSTILE, PASSIVE }
     public enum Scale { SMALL, NORMAL, LARGE, AUTO }
 
+    public static final int DEFAULT_BASE = 0xC66BFF;
+    public static final int DEFAULT_PLAYER = 0xFF5555;
+    public static final int DEFAULT_HOSTILE = 0x5599FF;
+    public static final int DEFAULT_PASSIVE = 0x55FF55;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Logger LOG = LoggerFactory.getLogger("Custom Crosshair");
     public static final CrosshairConfig INSTANCE = new CrosshairConfig();
@@ -31,7 +36,7 @@ public final class CrosshairConfig {
     public ColorMode colorMode;
     public Scale scale;
     public boolean customScale, dot, chroma;
-    public int length, gap, thickness, preset, color, friendly, enemy, alpha;
+    public int length, gap, thickness, preset, color, player, hostile, passive, alpha;
     public boolean[][] custom;
 
     private CrosshairConfig() {
@@ -43,7 +48,7 @@ public final class CrosshairConfig {
     public void reset() {
         enabled = true;
         mode = Mode.SIMPLE;
-        colorMode = ColorMode.VANILLA;
+        colorMode = ColorMode.DYNAMIC;
         scale = Scale.AUTO;
         customScale = false;
         dot = false;
@@ -52,10 +57,34 @@ public final class CrosshairConfig {
         gap = 2;
         thickness = 1;
         preset = 0;
-        color = 0xFFFFFF;
-        friendly = 0x55FF55;
-        enemy = 0xFF5555;
+        resetPalette();
         alpha = 100;
+    }
+
+    public void resetPalette() {
+        color = DEFAULT_BASE;
+        player = DEFAULT_PLAYER;
+        hostile = DEFAULT_HOSTILE;
+        passive = DEFAULT_PASSIVE;
+    }
+
+    public int getColor(ColorSlot slot) {
+        return switch (slot) {
+            case BASE -> color;
+            case PLAYER -> player;
+            case HOSTILE -> hostile;
+            case PASSIVE -> passive;
+        } & 0xFFFFFF;
+    }
+
+    public void setColor(ColorSlot slot, int value) {
+        int rgb = value & 0xFFFFFF;
+        switch (slot) {
+            case BASE -> color = rgb;
+            case PLAYER -> player = rgb;
+            case HOSTILE -> hostile = rgb;
+            case PASSIVE -> passive = rgb;
+        }
     }
 
     private static Path configFile() {
@@ -86,8 +115,9 @@ public final class CrosshairConfig {
         preset = number(json, "preset", preset, 0, CrosshairPatterns.PRESET_NAMES.size() - 1);
         alpha = number(json, "alpha", alpha, 0, 100);
         color = rgb(json, "color", color);
-        friendly = rgb(json, "friendly", friendly);
-        enemy = rgb(json, "enemy", enemy);
+        player = rgb(json, "player", player);
+        hostile = rgb(json, "hostile", rgb(json, "enemy", hostile));
+        passive = rgb(json, "passive", rgb(json, "friendly", passive));
         boolean[][] drawing = CrosshairPatterns.importCode(string(json, "custom"));
         if (drawing != null) custom = drawing;
     }
@@ -114,8 +144,9 @@ public final class CrosshairConfig {
         json.addProperty("preset", preset);
         json.addProperty("alpha", alpha);
         json.addProperty("color", hex(color));
-        json.addProperty("friendly", hex(friendly));
-        json.addProperty("enemy", hex(enemy));
+        json.addProperty("player", hex(player));
+        json.addProperty("hostile", hex(hostile));
+        json.addProperty("passive", hex(passive));
         json.addProperty("custom", drawing);
 
         try {

@@ -3,6 +3,7 @@ package com.customcrosshair;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.systems.RenderSystem;
 import java.awt.Color;
+import com.customcrosshair.CrosshairConfig.ColorSlot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -85,14 +86,14 @@ public final class CrosshairRender {
     private static int color(Minecraft client, CrosshairConfig cfg) {
         if (cfg.colorMode == CrosshairConfig.ColorMode.DYNAMIC
                 && client.hitResult instanceof EntityHitResult hit && hit.getEntity() instanceof LivingEntity other) {
-            if (client.player != null && client.player.isAlliedTo(other)) return cfg.friendly & 0xFFFFFF;
-            if (other instanceof Player || other instanceof Enemy) return cfg.enemy & 0xFFFFFF;
-            return cfg.friendly & 0xFFFFFF;
+            if (other instanceof Player) return cfg.getColor(ColorSlot.PLAYER);
+            if (other instanceof Enemy) return cfg.getColor(ColorSlot.HOSTILE);
+            return cfg.getColor(ColorSlot.PASSIVE);
         }
         if (cfg.chroma) {
             float hue = (System.nanoTime() % 4_000_000_000L) / 4_000_000_000f;
             return Color.HSBtoRGB(hue, 0.90f, 1f) & 0xFFFFFF;
         }
-        return cfg.color & 0xFFFFFF;
+        return cfg.getColor(ColorSlot.BASE);
     }
 }

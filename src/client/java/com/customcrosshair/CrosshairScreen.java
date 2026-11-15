@@ -2,6 +2,7 @@ package com.customcrosshair;
 
 import java.awt.Color;
 import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -179,10 +180,16 @@ public final class CrosshairScreen extends Screen {
     private static final class FlatButton extends Button {
         private final boolean selected;
         private final boolean[][] glyph;
+        private final IntSupplier swatch;
         FlatButton(int x, int y, int w, int h, Component title, boolean selected, Button.OnPress pressed, boolean[][] glyph) {
+            this(x, y, w, h, title, selected, pressed, glyph, null);
+        }
+        FlatButton(int x, int y, int w, int h, Component title, boolean selected, Button.OnPress pressed,
+                   boolean[][] glyph, IntSupplier swatch) {
             super(x, y, w, h, title, pressed, DEFAULT_NARRATION);
             this.selected = selected;
             this.glyph = glyph;
+            this.swatch = swatch;
         }
 
         @Override protected void renderContents(GuiGraphics g, int mx, int my, float delta) {
@@ -196,8 +203,10 @@ public final class CrosshairScreen extends Screen {
             } else {
                 var font = Minecraft.getInstance().font;
                 g.drawCenteredString(font, font.plainSubstrByWidth(getMessage().getString(), width - 5),
-                        x + width / 2, y + (height - 8) / 2, active ? WHITE : MUTE);
+                        x + width / 2, y + (height - 8) / 2 - (swatch != null ? 2 : 0), active ? WHITE : MUTE);
             }
+            if (swatch != null) g.fill(x + 4, y + height - 4, x + width - 4, y + height - 2,
+                    0xFF000000 | swatch.getAsInt());
         }
     }
 
@@ -424,7 +433,8 @@ public final class CrosshairScreen extends Screen {
     private static final class ColorScreen extends Screen {
         private final CrosshairScreen parent;
         private final CrosshairConfig c;
-        private int x, y, w, left, top, wide, tall, bar, editSlot, drag;
+        private int x, y, w, left, top, wide, tall, bar, drag;
+        private ColorSlot editSlot = ColorSlot.BASE;
         private EditBox hex;
         private final float[] hsv = new float[3];
         private boolean writingHex;
@@ -448,7 +458,7 @@ public final class CrosshairScreen extends Screen {
             int hf = (w - 21) / 2;
             addColorButton(left, y + 28, w - 18, t("color.mode", colorMode()), b -> {
                 c.colorMode = ColorMode.values()[(c.colorMode.ordinal() + 1) % ColorMode.values().length];
-                if (c.colorMode != ColorMode.DYNAMIC) editSlot = 0;
+                if (c.colorMode != ColorMode.DYNAMIC) editSlot = ColorSlot.BASE;
                 refreshHsv();
                 rebuildWidgets();
             });
@@ -460,15 +470,20 @@ public final class CrosshairScreen extends Screen {
             });
             chroma.active = c.colorMode != ColorMode.VANILLA;
             if (c.colorMode == ColorMode.DYNAMIC) {
-                int pw = (w - 24) / 3;
-                for (int i = 0; i < 3; i++) {
-                    final int j = i;
-                    var b = addColorButton(left + i * (pw + 3), y + 72, pw, t("color.slot." + i), ignored -> {
-                        editSlot = j;
-                        refreshHsv();
-                        rebuildWidgets();
-                    });
-                    b.active = editSlot != i;
+                ColorSlot[] slots = ColorSlot.values();
+                int available = w - 18 - 3 * (slots.length - 1);
+                for (ColorSlot slot : slots) {
+                    int i = slot.ordinal();
+                    int from = available * i / slots.length;
+                    int end = available * (i + 1) / slots.length;
+                    Component label = t("color.slot." + key(slot));
+                    var b = addRenderableWidget(new FlatButton(left + from + i * 3, y + 72, end - from,
+                            20, label, editSlot == slot, ignored -> {
+                                editSlot = slot;
+                                refreshHsv();
+                                rebuildWidgets();
+                            }, null, () -> c.getColor(slot)));
+                    b.setTooltip(Tooltip.create(label));
                 }
             }
             if (c.colorMode != ColorMode.VANILLA) {
@@ -499,6 +514,14 @@ public final class CrosshairScreen extends Screen {
                 }, t("reset.title"), t("reset.hint"));
                 minecraft.setScreen(confirm);
             });
+            if (c.colorMode != ColorMode.VANILLA && w >= 174) {
+                addColorButton(x + w - 99, y + 6, 90, t("color.reset"), b -> {
+                    c.resetPalette();
+                    refreshHsv();
+                    rebuildWidgets();
+                    c.save();
+                }).setTooltip(Tooltip.create(t("color.reset.help")));
+            }
             addColorButton(x + w - 91, top + tall + 5, 82, Component.translatable("gui.done"), b -> onClose());
         }
 
@@ -510,13 +533,9 @@ public final class CrosshairScreen extends Screen {
             return t("color." + c.colorMode.name().toLowerCase(java.util.Locale.ROOT));
         }
 
-        private int pickedColor() {
-            return switch (editSlot) { case 1 -> c.friendly; case 2 -> c.enemy; default -> c.color; };
-        }
+        private int pickedColor() { return c.getColor(editSlot); }
 
-        private void updateColor(int rgb) {
-            switch (editSlot) { case 1 -> c.friendly = rgb; case 2 -> c.enemy = rgb; default -> c.color = rgb; }
-        }
+        private void updateColor(int rgb) { c.setColor(editSlot, rgb); }
 
         private String hexColor() { return String.format(java.util.Locale.ROOT, "#%06X", pickedColor() & 0xffffff); }
 
