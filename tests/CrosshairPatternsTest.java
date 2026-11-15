@@ -47,6 +47,22 @@ public final class CrosshairPatternsTest {
             for (boolean[] r : grid) for (int x = 0; x < n; x++) r[x] = random.nextBoolean();
             check(Arrays.deepEquals(grid, CrosshairPatterns.importCode(CrosshairPatterns.exportCode(grid))), "size " + n);
         }
+        boolean[][] blank = CrosshairPatterns.blank();
+        check(blank.length == 16 && blank[0].length == 16, "new editor starts at 16×16");
+        blank[15][15] = true;
+        String canvasCode = CrosshairPatterns.exportCode(blank);
+        check(canvasCode.startsWith("LCCH-16-")
+            && Arrays.deepEquals(blank, CrosshairPatterns.importCode(canvasCode)), "16×16 editor code");
+        boolean[][] paddedHeart = CrosshairPatterns.centerOnCanvas(heart, 16);
+        for (int y = 0; y < 12; y++) for (int x = 0; x < 12; x++) {
+            check(heart[y][x] == paddedHeart[y + 2][x + 2], "12×12 heart remains centered");
+        }
+        check(OFFICIAL.get(3).equals(CrosshairPatterns.exportCode(heart)), "padding did not mutate the heart");
+        boolean[][] dot = CrosshairPatterns.centerOnCanvas(new boolean[][]{{true}}, 16);
+        check(dot[8][8] && !dot[7][7], "odd-to-even padding preserves the reticle anchor");
+        check(CrosshairPatterns.centerOnCanvas(dinosaur, 16) == dinosaur, "larger imports keep native dimensions");
+        check(CrosshairPatterns.centerOnCanvas(new boolean[][]{{true}, {false, true}}, 16) == null, "invalid canvas input");
+
         boolean[][] plus = CrosshairPatterns.simple(4, 2, 1, false);
         check(row(plus[6]).equals("####.....####"), "simple center row and gap");
         check(!plus[6][6] && CrosshairPatterns.simple(4, 2, 1, true)[6][6], "simple dot toggle");

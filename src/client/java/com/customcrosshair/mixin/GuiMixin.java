@@ -2,6 +2,8 @@ package com.customcrosshair.mixin;
 
 import com.customcrosshair.CrosshairConfig;
 import com.customcrosshair.CrosshairRender;
+import com.customcrosshair.CrosshairScreen;
+import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
@@ -17,6 +19,7 @@ public abstract class GuiMixin {
         "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIII)V"))
     private void customcrosshair$base(GuiGraphics graphics, RenderPipeline pipeline, Identifier sprite,
                                      int x, int y, int w, int h) {
+        if (Minecraft.getInstance().screen instanceof CrosshairScreen editor && editor.previewMode()) return;
         if (CrosshairConfig.INSTANCE.enabled) CrosshairRender.draw(graphics);
         else graphics.blitSprite(pipeline, sprite, x, y, w, h);
     }

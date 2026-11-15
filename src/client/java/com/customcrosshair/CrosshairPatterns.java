@@ -5,7 +5,7 @@ import java.util.List;
 
 public final class CrosshairPatterns {
     public static final int MAX_SIZE = 63;
-    public static final int EDITOR_SIZE = 15;
+    public static final int EDITOR_SIZE = 16;
     public static final int MIN_LENGTH = 1, MAX_LENGTH = 12;
     public static final int MIN_GAP = 0, MAX_GAP = 10;
     public static final int MIN_THICKNESS = 1, MAX_THICKNESS = 7;
@@ -161,6 +161,21 @@ public final class CrosshairPatterns {
 
     public static boolean[][] blank() {
         return new boolean[EDITOR_SIZE][EDITOR_SIZE];
+    }
+
+    /** Pads a smaller square to the editor canvas while keeping the reticle anchor fixed. */
+    public static boolean[][] centerOnCanvas(boolean[][] source, int minimumSide) {
+        if (source == null || source.length < 1 || source.length > MAX_SIZE) return null;
+        int side = source.length;
+        for (boolean[] row : source) if (row == null || row.length != side) return null;
+        int canvasSide = Math.clamp(minimumSide, 1, MAX_SIZE);
+        if (side >= canvasSide) return source;
+        int offset = canvasSide / 2 - side / 2;
+        boolean[][] canvas = new boolean[canvasSide][canvasSide];
+        for (int y = 0; y < side; y++) {
+            System.arraycopy(source[y], 0, canvas[y + offset], offset, side);
+        }
+        return canvas;
     }
 
     private static boolean[][] rows(String... lines) {
